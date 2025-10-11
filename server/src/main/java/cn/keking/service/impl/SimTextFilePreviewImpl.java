@@ -51,7 +51,7 @@ public class SimTextFilePreviewImpl implements FilePreview {
             }
             try {
                 String  fileData = HtmlUtils.htmlEscape(textData(filePath,fileName));
-                model.addAttribute("textData", Base64.encodeBase64String(fileData.getBytes()));
+                model.addAttribute("textData", Base64.encodeBase64String(fileData.getBytes(StandardCharsets.UTF_8)));
             } catch (IOException e) {
                 return otherFilePreview.notSupportedFile(model, fileAttribute, e.getLocalizedMessage());
             }
@@ -63,7 +63,7 @@ public class SimTextFilePreviewImpl implements FilePreview {
         } catch (IOException e) {
             LOGGER.error("Failed to read text file: {}", filePath, e);
         }
-        model.addAttribute("textData", Base64.encodeBase64String(fileData.getBytes()));
+        model.addAttribute("textData", Base64.encodeBase64String(fileData.getBytes(StandardCharsets.UTF_8)));
         return TXT_FILE_PREVIEW_PAGE;
     }
 
