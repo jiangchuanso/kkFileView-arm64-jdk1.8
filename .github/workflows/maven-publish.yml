@@ -1,0 +1,45 @@
+# 编译、测试、上传报告与 Jar 的完整 CI
+name: Java CI with Maven
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      # 1. 检出源码
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. 安装 JDK 8（Eclipse Temurin）并启用 Maven 缓存
+      - name: Set up JDK 8
+        uses: actions/setup-java@v4
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+          cache: maven
+
+      # 3. 编译 & 运行单元测试
+      - name: Compile and test with Maven
+        run: mvn --batch-mode --update-snapshots clean verify
+
+      # 4. 可选：上传测试报告（失败也能看到）
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-report
+          path: target/surefire-reports/
+
+      # 5. 可选：上传构建好的 jar（可在后续 job 或 Release 中使用）
+      - name: Upload built jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-jar
+          path: target/*.jar
+          retention-days: 7
