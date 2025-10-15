@@ -116,6 +116,16 @@
             <artifactId>sevenzipjbinding-all-platforms</artifactId>
             <version>${sevenzipjbinding.version}</version>
         </dependency>
+        <dependency>
+            <groupId>net.sf.sevenzipjbinding</groupId>
+            <artifactId>sevenzipjbinding-linux-arm64</artifactId>
+            <version>${sevenzipjbinding.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.sf.sevenzipjbinding</groupId>
+            <artifactId>sevenzipjbinding-mac-x86_64</artifactId>
+            <version>${sevenzipjbinding.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.commons</groupId>
