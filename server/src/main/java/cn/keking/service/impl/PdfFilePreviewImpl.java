@@ -37,14 +37,13 @@ public class PdfFilePreviewImpl implements FilePreview {
         String outFilePath = fileAttribute.getOutFilePath();  //生成的文件路径
         String originFilePath = fileAttribute.getOriginFilePath();  //原始文件路径
         if (OfficeFilePreviewImpl.OFFICE_PREVIEW_TYPE_IMAGE.equals(officePreviewType) || OfficeFilePreviewImpl.OFFICE_PREVIEW_TYPE_ALL_IMAGES.equals(officePreviewType)) {
-        //如果是压缩文件直接读取解压出来的文件
-                if(!fileAttribute.getCompressFile()){
-                    ReturnResponse<String> response = DownloadUtils.downLoad(fileAttribute, pdfName);
-                    if (response.isFailure()) {
-                        return otherFilePreview.notSupportedFile(model, fileAttribute, response.getMsg());
-                    }
-                    originFilePath = response.getContent();
+            //当文件不存在时，就去下载
+            if (forceUpdatedCache || !fileHandlerService.listConvertedFiles().containsKey(pdfName) || !ConfigConstants.isCacheEnabled()) {
+                ReturnResponse<String> response = DownloadUtils.downLoad(fileAttribute, pdfName);
+                if (response.isFailure()) {
+                    return otherFilePreview.notSupportedFile(model, fileAttribute, response.getMsg());
                 }
+                originFilePath = response.getContent();
                 if (ConfigConstants.isCacheEnabled()) {
                     // 加入缓存
                     fileHandlerService.addConvertedFile(pdfName, fileHandlerService.getRelativePath(originFilePath));
@@ -79,16 +78,11 @@ public class PdfFilePreviewImpl implements FilePreview {
             // 不是http开头，浏览器不能直接访问，需下载到本地
             if (url != null && !url.toLowerCase().startsWith("http")) {
                 if (!fileHandlerService.listConvertedFiles().containsKey(pdfName) || !ConfigConstants.isCacheEnabled()) {
+                    ReturnResponse<String> response = DownloadUtils.downLoad(fileAttribute, pdfName);
+                    if (response.isFailure()) {
                         return otherFilePreview.notSupportedFile(model, fileAttribute, response.getMsg());
-                    if(fileAttribute.getCompressFile()) {
-                        model.addAttribute("pdfUrl", fileHandlerService.getRelativePath(originFilePath));
-                    }else {
-                        ReturnResponse<String> response = DownloadUtils.downLoad(fileAttribute, pdfName);
-                        if (response.isFailure()) {
-                            return otherFilePreview.notSupportedFile(model, fileAttribute, response.getMsg());
-                        }
-                        model.addAttribute("pdfUrl", fileHandlerService.getRelativePath(response.getContent()));
                     }
+                    model.addAttribute("pdfUrl", fileHandlerService.getRelativePath(response.getContent()));
                     if (ConfigConstants.isCacheEnabled()) {
                         // 加入缓存
                         fileHandlerService.addConvertedFile(pdfName, fileHandlerService.getRelativePath(outFilePath));
