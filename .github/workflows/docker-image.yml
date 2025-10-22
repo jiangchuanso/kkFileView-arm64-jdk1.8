@@ -1,0 +1,110 @@
+# .github/workflows/release.yml
+name: Build & Publish kkFileView multi-arch image
+
+on:
+  push:
+    branches: [ master ]
+    tags: [ 'v*' ]          # 支持 tag 发布
+  pull_request:
+    branches: [ master ]
+
+env:
+  BASE_IMG: ghcr.io/${{ github.repository_owner }}/kkfileview-base:4.4.0
+  APP_IMG:  ghcr.io/${{ github.repository_owner }}/kkfileview:4.4.0
+
+jobs:
+  build-base:
+    name: 1. 构建多架构基础镜像 kkfileview-base
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 设置 QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: 设置 Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录 GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 构建并推送基础镜像
+        uses: docker/build-push-action@v5
+        with:
+          context: docker/kkfileview-base
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.BASE_IMG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-app:
+    name: 2. 编译 Java 工程
+    runs-on: ubuntu-22.04
+    needs: build-base
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 设置 JDK 8
+        uses: actions/setup-java@v4
+        with:
+          java-version: '8'
+          distribution: 'adopt'
+          cache: maven
+
+      - name: Maven 打包
+        run: mvn -B clean package -DskipTests -Pprod
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: kkFileView-tar
+          path: server/target/kkFileView-*.tar.gz
+          retention-days: 1
+
+  build-final:
+    name: 3. 构建最终业务镜像并推送
+    runs-on: ubuntu-22.04
+    needs: build-app
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 下载构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: kkFileView-tar
+          path: server/target/
+
+      - name: 设置 QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: 设置 Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录 GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 构建并推送最终镜像
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.APP_IMG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
