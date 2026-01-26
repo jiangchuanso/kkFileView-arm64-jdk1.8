@@ -63,9 +63,9 @@ var keyword = getQueryParam(currentUrl, 'watermarkTxt');
         if (!treeNode.isParent) {
             var path = '${baseUrl}'+treeNode.id+"?kkCompressfileKey="+'${fileTree}'+"&kkCompressfilepath="+encodeURIComponent(treeNode.id)+"&fullfilename="+encodeURIComponent(treeNode.name);
            if (isNotEmpty(keyword)){
-             location.href = "${baseUrl}onlinePreview?url=" + encodeURIComponent(Base64.encode(path))+"&watermarkTxt="+keyword;
+             location.href = "${baseUrl}onlinePreview?url=" + encodeURIComponent(Base64.encode(path))+"&watermarkTxt="+keyword+ "&key=${kkkey}";
            }else{
-             location.href = "${baseUrl}onlinePreview?url=" + encodeURIComponent(Base64.encode(path));}
+             location.href = "${baseUrl}onlinePreview?url=" + encodeURIComponent(Base64.encode(path))+ "&key=${kkkey}";}
          
         }
     }
