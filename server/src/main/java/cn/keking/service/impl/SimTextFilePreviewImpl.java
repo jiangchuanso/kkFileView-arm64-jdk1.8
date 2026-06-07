@@ -9,6 +9,8 @@ import cn.keking.utils.DownloadUtils;
 import cn.keking.utils.EncodingDetects;
 import cn.keking.utils.KkFileUtils;
 import org.apache.commons.codec.binary.Base64;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.ui.Model;
 import org.springframework.web.util.HtmlUtils;
@@ -22,6 +24,8 @@ import java.nio.charset.StandardCharsets;
  */
 @Service
 public class SimTextFilePreviewImpl implements FilePreview {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SimTextFilePreviewImpl.class);
 
     private final FileHandlerService fileHandlerService;
     private final OtherFilePreviewImpl otherFilePreview;
@@ -57,7 +61,7 @@ public class SimTextFilePreviewImpl implements FilePreview {
         try {
             fileData = HtmlUtils.htmlEscape(textData(filePath,fileName));
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.error("Failed to read text file: {}", filePath, e);
         }
         model.addAttribute("textData", Base64.encodeBase64String(fileData.getBytes()));
         return TXT_FILE_PREVIEW_PAGE;

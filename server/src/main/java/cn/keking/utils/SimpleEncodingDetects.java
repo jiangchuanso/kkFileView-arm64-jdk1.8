@@ -1,5 +1,8 @@
 package cn.keking.utils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -30,6 +33,8 @@ import java.net.URL;
  * @version 1.0
  */
 public class SimpleEncodingDetects {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SimpleEncodingDetects.class);
 
     /**
      * 得到文件的编码
@@ -64,11 +69,9 @@ public class SimpleEncodingDetects {
             fr.close();
 
         } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            LOGGER.error("File not found: {}", file, e);
         } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            LOGGER.error("Failed to read file: {}", file, e);
         }
 
     }

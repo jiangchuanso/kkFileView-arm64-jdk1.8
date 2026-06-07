@@ -178,13 +178,13 @@ public class FileHandlerService implements InitializingBean {
             sb.append("<script src=\"excel/excel.header.js\" type=\"text/javascript\"></script>");
             sb.append("<link rel=\"stylesheet\" href=\"excel/excel.css\">");
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("Failed to read converted file: {}", outFilePath, e);
         }
         // 重新写入文件
         try (FileOutputStream fos = new FileOutputStream(outFilePath); BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(fos, StandardCharsets.UTF_8))) {
             writer.write(sb.toString());
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("Failed to write converted file: {}", outFilePath, e);
         }
     }
 
@@ -468,14 +468,14 @@ public class FileHandlerService implements InitializingBean {
                 originFileName = URLDecoder.decode(compressFilePath, uriEncoding);  //转义的文件名 解下出原始文件名
                 attribute.setSkipDownLoad(true);
             } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
+                logger.error("Failed to decode compress file name: {}", compressFilePath, e);
             }
         }
         if (UrlEncoderUtils.hasUrlEncoded(originFileName)) {  //判断文件名是否转义
             try {
                 originFileName = URLDecoder.decode(originFileName, uriEncoding);  //转义的文件名 解下出原始文件名
             } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
+                logger.error("Failed to decode origin file name: {}", originFileName, e);
             }
         }else {
             url = WebUtils.encodeUrlFileName(url); //对未转义的url进行转义

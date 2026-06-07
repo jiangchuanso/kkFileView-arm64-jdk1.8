@@ -73,7 +73,7 @@ public class FileConvertQueueTask {
                         TimeUnit.SECONDS.sleep(10);
                     } catch (Exception ex) {
                         Thread.currentThread().interrupt();
-                        ex.printStackTrace();
+                        logger.error("Interrupted during sleep", ex);
                     }
                     logger.info("处理预览转换任务异常，url：{}", url, e);
                 }
