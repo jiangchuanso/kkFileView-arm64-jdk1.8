@@ -333,10 +333,9 @@ public class FileHandlerService implements InitializingBean {
      */
     public String cadToPdf(String inputFilePath, String outputFilePath, String cadPreviewType, FileAttribute fileAttribute) throws Exception {
         final InterruptionTokenSource source = new InterruptionTokenSource();//CAD延时
-        final SvgOptions SvgOptions = new SvgOptions();
+        final SvgOptions svgOptions = new SvgOptions();
         final PdfOptions pdfOptions = new PdfOptions();
-        final  TiffOptions TiffOptions =  new TiffOptions(TiffExpectedFormat.TiffJpegRgb);
-        Image cadImage = null;
+        final TiffOptions tiffOptions = new TiffOptions(TiffExpectedFormat.TiffJpegRgb);
         if (fileAttribute.isCompressFile()) { //判断 是压缩包的创建新的目录
             int index = outputFilePath.lastIndexOf("/");  //截取最后一个斜杠的前面的内容
             String folder = outputFilePath.substring(0, index);
@@ -347,10 +346,12 @@ public class FileHandlerService implements InitializingBean {
             }
         }
         File outputFile = new File(outputFilePath);
+        Image cadImage = null;
         try {
             LoadOptions opts = new LoadOptions();
             opts.setSpecifiedEncoding(CodePages.SimpChinese);
             cadImage = Image.load(inputFilePath, opts);
+            final Image finalCadImage = cadImage;
             RasterizationQuality rasterizationQuality = new RasterizationQuality();
             rasterizationQuality.setArc(RasterizationQualityValue.High);
             rasterizationQuality.setHatch(RasterizationQualityValue.High);
@@ -360,9 +361,9 @@ public class FileHandlerService implements InitializingBean {
             rasterizationQuality.setTextThicknessNormalization(true);
             CadRasterizationOptions cadRasterizationOptions = new CadRasterizationOptions();
             cadRasterizationOptions.setBackgroundColor(Color.getWhite());
-            cadRasterizationOptions.setPageWidth(cadImage.getWidth());
-            cadRasterizationOptions.setPageHeight(cadImage.getHeight());
-            cadRasterizationOptions.setUnitType(cadImage.getUnitType());
+            cadRasterizationOptions.setPageWidth(finalCadImage.getWidth());
+            cadRasterizationOptions.setPageHeight(finalCadImage.getHeight());
+            cadRasterizationOptions.setUnitType(finalCadImage.getUnitType());
             cadRasterizationOptions.setAutomaticLayoutsScaling(false);
             cadRasterizationOptions.setNoScaling(false);
             cadRasterizationOptions.setQuality(rasterizationQuality);
@@ -371,29 +372,29 @@ public class FileHandlerService implements InitializingBean {
             cadRasterizationOptions.setVisibilityMode(VisibilityMode.AsScreen);
             switch (cadPreviewType) {  //新增格式方法
                 case "svg":
-                    SvgOptions.setVectorRasterizationOptions(cadRasterizationOptions);
-                    SvgOptions.setInterruptionToken(source.getToken());
+                    svgOptions.setVectorRasterizationOptions(cadRasterizationOptions);
+                    svgOptions.setInterruptionToken(source.getToken());
                     break;
                 case "pdf":
                     pdfOptions.setVectorRasterizationOptions(cadRasterizationOptions);
                     pdfOptions.setInterruptionToken(source.getToken());
                     break;
                 case "tif":
-                    TiffOptions.setVectorRasterizationOptions(cadRasterizationOptions);
-                    TiffOptions.setInterruptionToken(source.getToken());
+                    tiffOptions.setVectorRasterizationOptions(cadRasterizationOptions);
+                    tiffOptions.setInterruptionToken(source.getToken());
                     break;
             }
             Callable<String> call = ()  ->  {
                 try (OutputStream stream = new FileOutputStream(outputFile)) {
                     switch (cadPreviewType) {
                         case "svg":
-                            cadImage.save(stream, SvgOptions);
+                            finalCadImage.save(stream, svgOptions);
                             break;
                         case "pdf":
-                            cadImage.save(stream, pdfOptions);
+                            finalCadImage.save(stream, pdfOptions);
                             break;
                         case "tif":
-                            cadImage.save(stream, TiffOptions);
+                            finalCadImage.save(stream, tiffOptions);
                             break;
                     }
                 } catch (IOException e) {
