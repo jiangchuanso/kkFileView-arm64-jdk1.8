@@ -1,6 +1,8 @@
 package cn.keking.utils;
 
 import org.jodconverter.core.util.OSUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -16,6 +18,8 @@ import java.util.stream.Stream;
  */
 public class LocalOfficeUtils {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(LocalOfficeUtils.class);
+
     public static final String OFFICE_HOME_KEY = "office.home";
     public static final String DEFAULT_OFFICE_HOME_VALUE = "default";
 
@@ -27,11 +31,12 @@ public class LocalOfficeUtils {
     public static File getDefaultOfficeHome() {
         Properties properties = new Properties();
         String customizedConfigPath = ConfigUtils.getCustomizedConfigPath();
-        try {
-            BufferedReader bufferedReader = new BufferedReader(new FileReader(customizedConfigPath));
+        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(customizedConfigPath))) {
             properties.load(bufferedReader);
             ConfigUtils.restorePropertiesFromEnvFormat(properties);
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            LOGGER.debug("Failed to load customized config from: {}", customizedConfigPath);
+        }
         String officeHome = properties.getProperty(OFFICE_HOME_KEY);
         if (officeHome != null && !DEFAULT_OFFICE_HOME_VALUE.equals(officeHome)) {
             return new File(officeHome);

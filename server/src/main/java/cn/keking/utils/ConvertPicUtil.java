@@ -102,9 +102,11 @@ public class ConvertPicUtil {
         Document document = new Document();
         RandomAccessFileOrArray rafa = null;
         FileOutputStream outputStream = null;
+        RandomAccessFile aFile = null;
+        FileChannel inChannel = null;
         try {
-            RandomAccessFile aFile = new RandomAccessFile(strJpgFile, "r");
-            FileChannel inChannel = aFile.getChannel();
+            aFile = new RandomAccessFile(strJpgFile, "r");
+            inChannel = aFile.getChannel();
             FileChannelRandomAccessSource fcra =  new FileChannelRandomAccessSource(inChannel);
             rafa = new RandomAccessFileOrArray(fcra);
             int pages = TiffImage.getNumberOfPages(rafa);
@@ -131,6 +133,12 @@ public class ConvertPicUtil {
             }
             if (outputStream != null) {
                 outputStream.close();
+            }
+            if (inChannel != null) {
+                inChannel.close();
+            }
+            if (aFile != null) {
+                aFile.close();
             }
         }
         return strPdfFile;

@@ -83,10 +83,11 @@ public class ConfigRefreshComponent {
                 int pdfTimeout200;
                 int pdfThread;
                 while (true) {
-                    FileReader fileReader = new FileReader(configFilePath);
-                    BufferedReader bufferedReader = new BufferedReader(fileReader);
-                    properties.load(bufferedReader);
-                    ConfigUtils.restorePropertiesFromEnvFormat(properties);
+                    try (FileReader fileReader = new FileReader(configFilePath);
+                         BufferedReader bufferedReader = new BufferedReader(fileReader)) {
+                        properties.load(bufferedReader);
+                        ConfigUtils.restorePropertiesFromEnvFormat(properties);
+                    }
                     cacheEnabled = Boolean.parseBoolean(properties.getProperty("cache.enabled", ConfigConstants.DEFAULT_CACHE_ENABLED));
                     text = properties.getProperty("simText", ConfigConstants.DEFAULT_TXT_TYPE);
                     media = properties.getProperty("media", ConfigConstants.DEFAULT_MEDIA_TYPE);
@@ -182,8 +183,6 @@ public class ConfigRefreshComponent {
                     ConfigConstants.setPdfTimeout200Value(pdfTimeout200);
                     ConfigConstants.setPdfThreadValue(pdfThread);
                     setWatermarkConfig(properties);
-                    bufferedReader.close();
-                    fileReader.close();
                     TimeUnit.SECONDS.sleep(1);
                 }
             } catch (IOException | InterruptedException e) {
