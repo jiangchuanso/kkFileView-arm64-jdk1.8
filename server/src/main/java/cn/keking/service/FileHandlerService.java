@@ -336,6 +336,7 @@ public class FileHandlerService implements InitializingBean {
         final SvgOptions SvgOptions = new SvgOptions();
         final PdfOptions pdfOptions = new PdfOptions();
         final  TiffOptions TiffOptions =  new TiffOptions(TiffExpectedFormat.TiffJpegRgb);
+        Image cadImage = null;
         if (fileAttribute.isCompressFile()) { //判断 是压缩包的创建新的目录
             int index = outputFilePath.lastIndexOf("/");  //截取最后一个斜杠的前面的内容
             String folder = outputFilePath.substring(0, index);
@@ -349,87 +350,77 @@ public class FileHandlerService implements InitializingBean {
         try {
             LoadOptions opts = new LoadOptions();
             opts.setSpecifiedEncoding(CodePages.SimpChinese);
-            final Image cadImage = Image.load(inputFilePath, opts);
-            try {
-                RasterizationQuality rasterizationQuality = new RasterizationQuality();
-                rasterizationQuality.setArc(RasterizationQualityValue.High);
-                rasterizationQuality.setHatch(RasterizationQualityValue.High);
-                rasterizationQuality.setText(RasterizationQualityValue.High);
-                rasterizationQuality.setOle(RasterizationQualityValue.High);
-                rasterizationQuality.setObjectsPrecision(RasterizationQualityValue.High);
-                rasterizationQuality.setTextThicknessNormalization(true);
-                CadRasterizationOptions cadRasterizationOptions = new CadRasterizationOptions();
-                cadRasterizationOptions.setBackgroundColor(Color.getWhite());
-                cadRasterizationOptions.setPageWidth(cadImage.getWidth());
-                cadRasterizationOptions.setPageHeight(cadImage.getHeight());
-                cadRasterizationOptions.setUnitType(cadImage.getUnitType());
-                cadRasterizationOptions.setAutomaticLayoutsScaling(false);
-                cadRasterizationOptions.setNoScaling(false);
-                cadRasterizationOptions.setQuality(rasterizationQuality);
-                cadRasterizationOptions.setDrawType(CadDrawTypeMode.UseObjectColor);
-                cadRasterizationOptions.setExportAllLayoutContent(true);
-                cadRasterizationOptions.setVisibilityMode(VisibilityMode.AsScreen);
-                switch (cadPreviewType) {  //新增格式方法
-                    case "svg":
-                        SvgOptions.setVectorRasterizationOptions(cadRasterizationOptions);
-                        SvgOptions.setInterruptionToken(source.getToken());
-                        break;
-                    case "pdf":
-                        pdfOptions.setVectorRasterizationOptions(cadRasterizationOptions);
-                        pdfOptions.setInterruptionToken(source.getToken());
-                        break;
-                    case "tif":
-                        TiffOptions.setVectorRasterizationOptions(cadRasterizationOptions);
-                        TiffOptions.setInterruptionToken(source.getToken());
-                        break;
-                }
-                Callable<String> call = ()  ->  {
-                    try (OutputStream stream = new FileOutputStream(outputFile)) {
-                        switch (cadPreviewType) {
-                            case "svg":
-                                cadImage.save(stream, SvgOptions);
-                                break;
-                            case "pdf":
-                                cadImage.save(stream, pdfOptions);
-                                break;
-                            case "tif":
-                                cadImage.save(stream, TiffOptions);
-                                break;
-                        }
-                    } catch (IOException e) {
-                        logger.error("CADFileNotFoundException，inputFilePath：{}", inputFilePath, e);
-                        return null;
-                    } finally {
-                        cadImage.dispose();
-                        source.interrupt();  //结束任务
-                        source.dispose();
+            cadImage = Image.load(inputFilePath, opts);
+            RasterizationQuality rasterizationQuality = new RasterizationQuality();
+            rasterizationQuality.setArc(RasterizationQualityValue.High);
+            rasterizationQuality.setHatch(RasterizationQualityValue.High);
+            rasterizationQuality.setText(RasterizationQualityValue.High);
+            rasterizationQuality.setOle(RasterizationQualityValue.High);
+            rasterizationQuality.setObjectsPrecision(RasterizationQualityValue.High);
+            rasterizationQuality.setTextThicknessNormalization(true);
+            CadRasterizationOptions cadRasterizationOptions = new CadRasterizationOptions();
+            cadRasterizationOptions.setBackgroundColor(Color.getWhite());
+            cadRasterizationOptions.setPageWidth(cadImage.getWidth());
+            cadRasterizationOptions.setPageHeight(cadImage.getHeight());
+            cadRasterizationOptions.setUnitType(cadImage.getUnitType());
+            cadRasterizationOptions.setAutomaticLayoutsScaling(false);
+            cadRasterizationOptions.setNoScaling(false);
+            cadRasterizationOptions.setQuality(rasterizationQuality);
+            cadRasterizationOptions.setDrawType(CadDrawTypeMode.UseObjectColor);
+            cadRasterizationOptions.setExportAllLayoutContent(true);
+            cadRasterizationOptions.setVisibilityMode(VisibilityMode.AsScreen);
+            switch (cadPreviewType) {  //新增格式方法
+                case "svg":
+                    SvgOptions.setVectorRasterizationOptions(cadRasterizationOptions);
+                    SvgOptions.setInterruptionToken(source.getToken());
+                    break;
+                case "pdf":
+                    pdfOptions.setVectorRasterizationOptions(cadRasterizationOptions);
+                    pdfOptions.setInterruptionToken(source.getToken());
+                    break;
+                case "tif":
+                    TiffOptions.setVectorRasterizationOptions(cadRasterizationOptions);
+                    TiffOptions.setInterruptionToken(source.getToken());
+                    break;
+            }
+            Callable<String> call = ()  ->  {
+                try (OutputStream stream = new FileOutputStream(outputFile)) {
+                    switch (cadPreviewType) {
+                        case "svg":
+                            cadImage.save(stream, SvgOptions);
+                            break;
+                        case "pdf":
+                            cadImage.save(stream, pdfOptions);
+                            break;
+                        case "tif":
+                            cadImage.save(stream, TiffOptions);
+                            break;
                     }
-                    return "true";
-                };
-                Future<String> result = pool.submit(call);
-                try {
-                    result.get(Long.parseLong(ConfigConstants.getCadTimeout()), TimeUnit.SECONDS);
-                    // 如果在超时时间内，没有数据返回：则抛出TimeoutException异常
-                } catch (InterruptedException e) {
-                    logger.error("CAD转换文件异常：", e);
+                } catch (IOException e) {
+                    logger.error("CADFileNotFoundException，inputFilePath：{}", inputFilePath, e);
                     return null;
-                } catch (ExecutionException e) {
-                    logger.error("CAD转换在尝试取得任务结果时出错：", e);
-                    return null;
-                } catch (TimeoutException e) {
-                    logger.error("CAD转换时间超时：", e);
-                    return null;
-                } finally {
-                    source.interrupt();  //结束任务
-                    source.dispose();
-                    cadImage.dispose();
-                    // pool.shutdownNow();
                 }
-            } finally {
-                source.dispose();
-                cadImage.dispose();
+                return "true";
+            };
+            Future<String> result = pool.submit(call);
+            try {
+                result.get(Long.parseLong(ConfigConstants.getCadTimeout()), TimeUnit.SECONDS);
+                // 如果在超时时间内，没有数据返回：则抛出TimeoutException异常
+            } catch (InterruptedException e) {
+                logger.error("CAD转换文件异常：", e);
+                return null;
+            } catch (ExecutionException e) {
+                logger.error("CAD转换在尝试取得任务结果时出错：", e);
+                return null;
+            } catch (TimeoutException e) {
+                logger.error("CAD转换时间超时：", e);
+                return null;
             }
         } finally {
+            if (cadImage != null) {
+                cadImage.dispose();
+            }
+            source.interrupt();
             source.dispose();
         }
         return "true";
