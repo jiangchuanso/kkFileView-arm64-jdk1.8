@@ -3938,7 +3938,7 @@ var LuckySheet = /** @class */function (_super) {
     _this.sheetList = allFileOption.sheetList;
     _this.imageList = allFileOption.imageList;
     _this.hide = allFileOption.hide;
-    console.log(allFileOption, 'allFileOption');
+    // console.log(allFileOption, 'allFileOption');
     _this.dataVerificationSelectCount = allFileOption.dataVerificationSelectCount;
     //Output
     _this.name = sheetName;

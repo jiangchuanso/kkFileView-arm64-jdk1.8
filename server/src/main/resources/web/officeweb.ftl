@@ -88,11 +88,7 @@
             return;
         }
         // mask.style.display = "flex";
-         LuckyExcel.transformExcelToLuckyByUrl(value, name, function(exportJson, luckysheetfile){
-            if(exportJson.sheets==null || exportJson.sheets.length==0){
-                alert("读取excel文件内容失败!");
-                return;
-            }
+        transformWithWorker(value, name).then(function(exportJson){
             mask.style.display = "none";
             window.luckysheet.destroy();
             window.luckysheet.create({
@@ -119,11 +115,85 @@
                 sheetFormulaBar: false, // 是否显示公式栏
                 enableAddBackTop: true,//返回头部按钮
                 forceCalculation: false, //下面是导出插件 默认关闭
-                        data: exportJson.sheets,
-                        title: exportJson.info.name,
-                        userInfo: exportJson.info.name.creator,
+                data: exportJson.sheets,
+                title: exportJson.info.name,
+                userInfo: exportJson.info.name.creator,
             });
-        }, 1000);
+        }, function(error){
+            console.error('加载Excel失败:', error);
+            alert("读取excel文件内容失败!");
+        });
+    }
+    // Web Worker 方式转换 Excel，避免大文件阻塞主线程；不支持 Worker 时回退主线程转换
+    function transformWithWorker(value, name) {
+        return new Promise((resolve, reject) => {
+            if (!window.Worker) {
+                transformOnMainThread(value, name, resolve, reject);
+                return;
+            }
+
+            let worker;
+            try {
+                worker = new Worker('xlsx/luckyexcel-worker.js');
+            } catch (error) {
+                transformOnMainThread(value, name, resolve, reject);
+                return;
+            }
+
+            let settled = false;
+            const fallbackToMainThread = function(error) {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+                worker.terminate();
+                if (error) {
+                    console.warn('Excel Worker转换失败，回退主线程转换:', error);
+                }
+                transformOnMainThread(value, name, resolve, reject);
+            };
+
+            worker.onmessage = function(event) {
+                const data = event.data || {};
+
+                if (data.type === 'success') {
+                    settled = true;
+                    worker.terminate();
+                    resolve(data.exportJson);
+                    return;
+                }
+
+                if (data.type === 'error') {
+                    fallbackToMainThread(data.message || 'Excel转换失败');
+                }
+            };
+
+            worker.onerror = function(error) {
+                fallbackToMainThread(error && error.message ? error.message : error);
+            };
+
+            worker.postMessage({
+                url: value,
+                name: name
+            });
+        });
+    }
+
+    function transformOnMainThread(value, name, resolve, reject) {
+        try {
+            LuckyExcel.transformExcelToLuckyByUrl(value, name, function(exportJson, luckysheetfile) {
+                if (!exportJson || !exportJson.sheets || exportJson.sheets.length === 0) {
+                    reject(new Error("读取excel文件内容失败!"));
+                    return;
+                }
+
+                resolve(exportJson);
+            }, function(error) {
+                reject(error);
+            });
+        } catch (error) {
+            reject(error);
+        }
     }
     loadText();
     // 打印时，获取luckysheet指定区域html内容，拼接至div，隐藏luckysheet容器并显示打印区域html
