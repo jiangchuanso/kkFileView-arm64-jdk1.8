@@ -29,3 +29,10 @@ nbdist/
 
 server/src/main/cache/
 server/src/main/file/
+
+# 忽略所有以 . 开头的文件/目录（如 .codebuddy 工作记忆目录、各类 IDE/工具隐藏文件）
+# 但保留必要的项目配置：CI 工作流、忽略规则本身、属性配置
+.*
+!.github/
+!.gitignore
+!.gitattributes
