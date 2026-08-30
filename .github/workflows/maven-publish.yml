@@ -2,8 +2,8 @@ name: MasterPipeline
 
 on:
   push:
-    branches: [ master ]
-    tags: [ 'v*' ]          # 打 v* tag 时自动发布 GitHub Release
+    tags: [ 'v*' ]          # 仅打 release 版本号（v*）时自动发布 GitHub Release，提交到 master 不触发
+  workflow_dispatch:        # 允许在 Actions 页面手动触发
 
 jobs:
   compile:
