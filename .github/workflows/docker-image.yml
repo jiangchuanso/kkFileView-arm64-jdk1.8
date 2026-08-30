@@ -4,13 +4,9 @@ name: Build & Publish kkFileView multi-arch image
 on:
   push:
     branches: [ master ]
-    tags: [ 'v*' ]          # 支持 tag 发布
+    tags: [ 'v*' ]          # 支持 tag 发布（镜像版本号取自 tag，去掉前缀 v）
   pull_request:
     branches: [ master ]
-
-env:
-  BASE_IMG: ghcr.io/${{ github.repository_owner }}/kkfileview-base:4.4.0
-  APP_IMG:  ghcr.io/${{ github.repository_owner }}/kkfileview:4.4.0
 
 jobs:
   build-base:
@@ -21,6 +17,15 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
+
+      - name: 解析镜像版本号
+        id: version
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "tag=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: 设置 QEMU
         uses: docker/setup-qemu-action@v3
@@ -41,7 +46,7 @@ jobs:
           context: docker/kkfileview-base
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ env.BASE_IMG }}
+          tags: ghcr.io/${{ github.repository_owner }}/kkfileview-base:${{ steps.version.outputs.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -93,6 +98,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: 解析镜像版本号
+        id: version
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "tag=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: 下载 amd64 构建产物
         uses: actions/download-artifact@v4
         with:
@@ -125,6 +139,8 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ env.APP_IMG }}
+          # BASE_VERSION 传入 Dockerfile，使业务镜像基于同版本的基础镜像构建
+          build-args: BASE_VERSION=${{ steps.version.outputs.tag }}
+          tags: ghcr.io/${{ github.repository_owner }}/kkfileview:${{ steps.version.outputs.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
