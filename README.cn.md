@@ -147,6 +147,21 @@ pdf预览模式预览效果如下
    
 ![输入图片说明](https://gitee.com/uploads/images/2017/1213/100221_ea15202e_492218.png "屏幕截图.png")
 
+### 多架构构建（sevenzipjbinding 按平台分包）
+
+`sevenzipjbinding` 的 `all-platforms` 包默认并不包含 `linux-arm64` 与 `mac-x86_64` 的 native 库。
+以往为了补齐这两个平台，会把 `all-platforms` 与具体平台 jar 一起打进包，导致在对应架构运行时
+sevenzipjbinding 会错误加载 `all-platforms` 中的同名 native 库（需手动删除多余 jar）。
+
+现已改为按目标架构通过 Maven profile 选择 native 库，打包后无需再手动删除：
+
+- `amd64`（默认）：`mvn clean package -Psevenzip-all` → 使用 `sevenzipjbinding-all-platforms`
+- `arm64`：`mvn clean package -Psevenzip-linux-arm64` → 仅 `sevenzipjbinding-linux-arm64`
+- `macOS x86_64`：`mvn clean package -Psevenzip-mac-x86_64` → 仅 `sevenzipjbinding-mac-x86_64`
+
+CI 工作流（`.github/workflows/`）已使用矩阵分别构建各架构产物，Docker 镜像在跨平台构建时
+通过 `TARGETARCH` 选取对应架构的 tar 包，arm64 容器不再受 sevenzipjbinding 冲突影响。
+
 ### 历史更新记录
 
 #### > 2025年01月16日，v4.4.0 版本发布 ：

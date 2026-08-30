@@ -46,9 +46,18 @@ jobs:
           cache-to: type=gha,mode=max
 
   build-app:
-    name: 2. 编译 Java 工程
+    name: 2. 编译 Java 工程（按架构分别打包 sevenzipjbinding）
     runs-on: ubuntu-22.04
     needs: build-base
+    strategy:
+      matrix:
+        include:
+          # amd64：使用 sevenzipjbinding-all-platforms（默认 profile，覆盖大多数平台）
+          - arch: amd64
+            profile: sevenzip-all
+          # arm64：仅引入 sevenzipjbinding-linux-arm64，避免与 all-platforms 同包冲突
+          - arch: arm64
+            profile: sevenzip-linux-arm64
     steps:
       - uses: actions/checkout@v4
 
@@ -59,14 +68,19 @@ jobs:
           distribution: 'adopt'
           cache: maven
 
-      - name: Maven 打包
-        run: mvn -B clean package -DskipTests -Pprod
+      - name: Maven 打包（架构：${{ matrix.arch }} / profile：${{ matrix.profile }}）
+        run: mvn -B clean package -DskipTests -P${{ matrix.profile }}
 
-      - name: 上传构建产物
+      - name: 按架构重命名构建产物
+        run: |
+          mkdir -p dist
+          mv server/target/kkFileView-*.tar.gz dist/kkFileView-${{ matrix.arch }}.tar.gz
+
+      - name: 上传构建产物（${{ matrix.arch }}）
         uses: actions/upload-artifact@v4
         with:
-          name: kkFileView-tar
-          path: server/target/kkFileView-*.tar.gz
+          name: kkFileView-${{ matrix.arch }}-tar
+          path: dist/kkFileView-${{ matrix.arch }}.tar.gz
           retention-days: 1
 
   build-final:
@@ -79,11 +93,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 下载构建产物
+      - name: 下载 amd64 构建产物
         uses: actions/download-artifact@v4
         with:
-          name: kkFileView-tar
-          path: server/target/
+          name: kkFileView-amd64-tar
+          path: dist
+
+      - name: 下载 arm64 构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: kkFileView-arm64-tar
+          path: dist
 
       - name: 设置 QEMU
         uses: docker/setup-qemu-action@v3
@@ -98,7 +118,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 构建并推送最终镜像
+      - name: 构建并推送最终镜像（多架构）
         uses: docker/build-push-action@v5
         with:
           context: .

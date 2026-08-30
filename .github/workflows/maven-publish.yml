@@ -6,8 +6,20 @@ on:
 
 jobs:
   compile:
-    name: 编译
+    name: 编译（按架构分别打包 sevenzipjbinding）
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # amd64：使用 sevenzipjbinding-all-platforms（默认 profile，覆盖大多数平台）
+          - arch: amd64
+            profile: sevenzip-all
+          # arm64：仅引入 sevenzipjbinding-linux-arm64，避免与 all-platforms 同包冲突
+          - arch: arm64
+            profile: sevenzip-linux-arm64
+          # macOS x86_64（Intel）：仅引入 sevenzipjbinding-mac-x86_64
+          - arch: mac-x86_64
+            profile: sevenzip-mac-x86_64
     steps:
       # 1. 检出代码
       - name: Checkout
@@ -28,17 +40,24 @@ jobs:
           sudo mv apache-maven-3.6.3 /opt/
           echo "/opt/apache-maven-3.6.3/bin" >> $GITHUB_PATH
 
-      # 4. 构建（跳过测试）
+      # 4. 构建（跳过测试，按架构选择 sevenzipjbinding profile）
       - name: Maven Build
-        run: mvn -B clean package -Dmaven.test.skip=true
+        run: mvn -B clean package -Dmaven.test.skip=true -P${{ matrix.profile }}
 
-      # 5. 把产物上传为 Actions 制品（7 天自动清理）
+      # 5. 按架构重命名产物（tar.gz 用于 Linux，zip 用于 Windows）
+      - name: Rename artifacts by arch
+        run: |
+          mkdir -p dist
+          mv server/target/kkFileView-*.tar.gz dist/kkFileView-${{ matrix.arch }}.tar.gz
+          mv server/target/kkFileView-*.zip   dist/kkFileView-${{ matrix.arch }}.zip
+
+      # 6. 把产物上传为 Actions 制品（7 天自动清理）
       # 对应云效的 artifacts.name = BUILD_ARTIFACT
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: BUILD_ARTIFACT
+          name: BUILD_ARTIFACT-${{ matrix.arch }}
           path: |
-            ./server/target/kkFileView-*.tar.gz
-            ./server/target/kkFileView-*.zip
+            ./dist/kkFileView-${{ matrix.arch }}.tar.gz
+            ./dist/kkFileView-${{ matrix.arch }}.zip
           retention-days: 7

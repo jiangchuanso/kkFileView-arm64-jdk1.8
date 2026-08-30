@@ -106,24 +106,12 @@
         </dependency>
 
         <!-- 对 rar5 的支持 和其他众多压缩支持 可参考 package net.sf.sevenzipjbinding.ArchiveFormat; -->
+        <!-- 核心包（各平台通用）。平台相关的 native 库不再在此硬编码，而是通过文件末尾的
+             Maven <profiles> 按目标架构选择，避免 all-platforms 与 linux-arm64 / mac-x86_64
+             同包，导致在 arm64 / mac-x86_64 运行时 sevenzipjbinding 错误加载 all-platforms 中的 native 库。 -->
         <dependency>
             <groupId>net.sf.sevenzipjbinding</groupId>
             <artifactId>sevenzipjbinding</artifactId>
-            <version>${sevenzipjbinding.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>net.sf.sevenzipjbinding</groupId>
-            <artifactId>sevenzipjbinding-all-platforms</artifactId>
-            <version>${sevenzipjbinding.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>net.sf.sevenzipjbinding</groupId>
-            <artifactId>sevenzipjbinding-linux-arm64</artifactId>
-            <version>${sevenzipjbinding.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>net.sf.sevenzipjbinding</groupId>
-            <artifactId>sevenzipjbinding-mac-x86_64</artifactId>
             <version>${sevenzipjbinding.version}</version>
         </dependency>
 
@@ -321,6 +309,50 @@
         </dependency>
         <!-- test dependency - end -->
     </dependencies>
+
+    <!-- sevenzipjbinding 平台相关的 native 库按目标架构分别引入，避免打包后混装：
+         all-platforms 默认不含 linux-arm64 与 mac-x86_64，若与这两个具体平台 jar 同包，
+         运行到对应架构时 sevenzipjbinding 会错误加载 all-platforms 中的 native 库（同名冲突）。
+         使用方式：mvn ... -Psevenzip-linux-arm64 （一旦显式激活某 profile，默认的 sevenzip-all 自动失效）。 -->
+    <profiles>
+        <!-- 默认（x86_64 / amd64）：all-platforms 已包含 linux-x86_64、windows-x86_64、
+             windows-aarch64、mac-aarch64 等绝大多数平台 -->
+        <profile>
+            <id>sevenzip-all</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>net.sf.sevenzipjbinding</groupId>
+                    <artifactId>sevenzipjbinding-all-platforms</artifactId>
+                    <version>${sevenzipjbinding.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+        <!-- linux arm64：仅引入对应平台 native 库，不要和 all-platforms 同包 -->
+        <profile>
+            <id>sevenzip-linux-arm64</id>
+            <dependencies>
+                <dependency>
+                    <groupId>net.sf.sevenzipjbinding</groupId>
+                    <artifactId>sevenzipjbinding-linux-arm64</artifactId>
+                    <version>${sevenzipjbinding.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+        <!-- macOS x86_64（Intel）：仅引入对应平台 native 库 -->
+        <profile>
+            <id>sevenzip-mac-x86_64</id>
+            <dependencies>
+                <dependency>
+                    <groupId>net.sf.sevenzipjbinding</groupId>
+                    <artifactId>sevenzipjbinding-mac-x86_64</artifactId>
+                    <version>${sevenzipjbinding.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
 
     <build>
         <resources>
