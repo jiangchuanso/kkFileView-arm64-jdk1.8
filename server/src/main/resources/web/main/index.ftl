@@ -1,4 +1,11 @@
+<#-- 本项目后端未启用秘钥/AES 接入与目录搜索功能，兜底定义避免 FreeMarker 未定义变量渲染异常 -->
+<#assign isshowkey = false>
+<#assign isshowaeskey = false>
+<#assign kkkey = "false">
+<#assign aeskey = "false">
+<#assign searchText = "">
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
