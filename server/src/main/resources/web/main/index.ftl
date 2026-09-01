@@ -383,7 +383,6 @@
                     <input type="hidden" name="url"/>
                     <label><input type="checkbox" name="forceUpdatedCache" value="true"/>更新</label>
                     <label><input type="checkbox" name="kkagent" value="true"/>跨域</label>
-                    <label><input type="checkbox" id="encryption" name="encryption" value="aes"/>AES</label>
                     <input type="text" id="filePassword" name="filePassword" placeholder="密码" style="width:50px;">
                     <input type="text" id="page" name="page" placeholder="页码" style="width:50px;">
                     <input type="text" id="highlightall" name="highlightall" placeholder="高亮显示" style="width:60px;">
@@ -925,7 +924,7 @@
         }
         
         var checkbox = document.getElementById('encryption');
-        var isChecked = checkbox.checked;
+        var isChecked = checkbox != null && checkbox.checked;
         var urlaes;
         
         if(isChecked){
